@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kids Spelling Game</title>
+  <style>
+    body { font-family: 'Comic Sans MS', cursive, sans-serif; background: linear-gradient(to right, #ffecd2, #fcb69f); text-align: center; padding: 50px; position: relative; overflow: hidden; }
+    h1 { color: #ff6f61; font-size: 3em; margin-bottom: 20px; }
+    #wordBox { background: #fff3b0; border: 4px dashed #ffb3c1; padding: 20px; display: inline-block; border-radius: 10px; font-size: 2em; margin-bottom: 10px; }
+    #inputBox { font-size: 1.5em; padding: 10px; border: 3px solid #ffb3c1; border-radius: 5px; width: 200px; }
+    #submitBtn, #nextBtn, #restartBtn { font-size: 1.2em; padding: 10px 20px; margin: 10px; border: none; border-radius: 5px; cursor: pointer; }
+    #submitBtn { background: #ff6f61; color: white; }
+    #nextBtn { background: #6dd5ed; color: white; display: none; }
+    #restartBtn { background: #4CAF50; color: white; display: none; }
+    #timer { font-size: 1.5em; margin-top: 10px; }
+    #message { font-size: 1.8em; margin-top: 20px; }
+    #result { font-size:2em; margin-top:20px; }
+    .emoji { position: absolute; font-size: 2em; animation: float 5s infinite; opacity: 0.7; }
+    @keyframes float { 0% { transform: translateY(100vh) scale(0.5); } 100% { transform: translateY(-10vh) scale(1); } }
+  </style>
+</head>
+<body>
+  <h1>Spelling Fun!</h1>
+  <div id="game">
+    <div id="questionNum"></div>
+    <div id="wordBox">loading...</div><br>
+    <input type="text" id="inputBox" placeholder="Type correct spelling"><br>
+    <div id="timer">Time left: 30s</div>
+    <button id="submitBtn">Check</button>
+    <button id="nextBtn">Next</button>
+    <div id="message"></div>
+  </div>
+  <div id="result" style="display:none;"></div>
+  <button id="restartBtn">Restart Game</button>
+
+  <script>
+    // Static list of 100 words
+    const wordList = [
+      'would','there','their','about','which','people','could','other','think','after',
+      'first','because','these','still','those','being','world','while','might','never',
+      'house','great','group','where','place','again','every','under','small','found',
+      'leave','thing','asked','large','until','learn','point','study','often','together',
+      'times','money','young','story','today','right','party','early','state','later',
+      'night','white','above','black','start','water','short','bring','watch','happy',
+      'music','light','stand','voice','carry','write','truth','whole','order','alone',
+      'death','child','month','north','sound','field','south','paper','class','train',
+      'heart','peace','clean','dream','green','break','catch','raise','drive','fight',
+      'laugh','brown','mouth','round','woman','board','smile','visit','guess','touch',
+      'drink','dance','blood','floor','enter','plant','radio','teach','close','glass',
+      'space','stone','sweet','quiet','value','shirt','phone','price','sleep','shape',
+      'chair','cloud','noise','sharp','smell','clear','print','dress','trust','agree',
+      'match','cover','clock','brain','movie','check'
+    ];
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function makeWrong(word) {
+      if (word.length < 2) return word;
+      const arr = word.split('');
+      const i = Math.floor(Math.random() * (arr.length - 1));
+      [arr[i], arr[i+1]] = [arr[i+1], arr[i]];
+      return arr.join('');
+    }
+
+    function generateQuestions() {
+      const copy = [...wordList];
+      shuffle(copy);
+      return copy.slice(0, 20).map(w => ({ wrong: makeWrong(w), correct: w }));
+    }
+
+    let questions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let timerInterval;
+    const total = 20;
+
+    const questionNum = document.getElementById('questionNum');
+    const wordBox = document.getElementById('wordBox');
+    const inputBox = document.getElementById('inputBox');
+    const submitBtn = document.getElementById('submitBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const message = document.getElementById('message');
+    const timerDisplay = document.getElementById('timer');
+    const resultDiv = document.getElementById('result');
+
+    function startTimer() {
+      let timeLeft = 30;
+      timerDisplay.textContent = `Time left: ${timeLeft}s`;
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerDisplay.textContent = `Time left: ${timeLeft}s`;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          message.textContent = '⏰ Time up!';
+          message.style.color = '#dc3545';
+          submitBtn.disabled = true;
+          nextBtn.style.display = 'inline-block';
+        }
+      }, 1000);
+    }
+
+    function showQuestion() {
+      if (currentIndex >= total) return endGame();
+      const q = questions[currentIndex];
+      questionNum.textContent = `Question ${currentIndex + 1} of ${total}`;
+      wordBox.textContent = q.wrong;
+      inputBox.value = '';
+      inputBox.disabled = false;
+      inputBox.focus();
+      message.textContent = '';
+      submitBtn.disabled = false;
+      submitBtn.style.display = 'inline-block';
+      nextBtn.style.display = 'none';
+      resultDiv.style.display = 'none';
+      restartBtn.style.display = 'none';
+      startTimer();
+    }
+
+    function checkAnswer() {
+      clearInterval(timerInterval);
+      submitBtn.disabled = true;
+      inputBox.disabled = true;
+      const answer = inputBox.value.trim().toLowerCase();
+      const correct = questions[currentIndex].correct;
+      if (answer === correct) {
+        score++;
+        message.textContent = '🎉 Correct!';
+        message.style.color = '#28a745';
+      } else {
+        message.textContent = `❌ Wrong! Correct is "${correct}"`;
+        message.style.color = '#dc3545';
+      }
+      nextBtn.style.display = 'inline-block';
+    }
+
+    submitBtn.addEventListener('click', checkAnswer);
+    inputBox.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !submitBtn.disabled) checkAnswer();
+      if (e.key === ' ' && nextBtn.style.display === 'inline-block') {
+        e.preventDefault();
+        nextBtn.click();
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      clearInterval(timerInterval);
+      currentIndex++;
+      showQuestion();
+    });
+
+    function endGame() {
+      document.getElementById('game').style.display = 'none';
+      resultDiv.style.display = 'block';
+      resultDiv.textContent = `Game Over! Your score: ${score} / ${total}`;
+      restartBtn.style.display = 'inline-block';
+    }
+
+    restartBtn.addEventListener('click', () => {
+      currentIndex = 0;
+      score = 0;
+      questions = generateQuestions();
+      document.getElementById('game').style.display = 'block';
+      resultDiv.style.display = 'none';
+      restartBtn.style.display = 'none';
+      showQuestion();
+    });
+
+    function addEmojis() {
+      const emojis = ['🍎','⚽','🎈','⭐','🐱'];
+      for (let i = 0; i < 8; i++) {
+        const span = document.createElement('span');
+        span.classList.add('emoji');
+        span.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+        span.style.left = Math.random()*90 + 'vw';
+        span.style.animationDuration = 3 + Math.random()*3 + 's';
+        document.body.appendChild(span);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      questions = generateQuestions();
+      addEmojis();
+      showQuestion();
+    });
+  </script>
+</body>
+</html>
